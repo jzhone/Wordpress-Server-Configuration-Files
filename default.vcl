@@ -19,10 +19,10 @@ acl purge {
 }
 
 sub vcl_recv {
-	set req.grace = 2m;
+#	set req.grace = 2m;
 
   # Set X-Forwarded-For header for logging in nginx
-  remove req.http.X-Forwarded-For;
+  #remove req.http.X-Forwarded-For;
   set    req.http.X-Forwarded-For = client.ip;
 
 
@@ -70,11 +70,11 @@ if (req.http.Cookie ~ "wordpress_" || req.http.Cookie ~ "comment_") {
 
 
 	# allow PURGE from localhost
-	if (req.request == "PURGE") {
+	if (req.method == "PURGE") {
 		if (!client.ip ~ purge) {
-			error 405 "Not allowed.";
+			return (synth (405, "Not allowed."));
 		}
-		return (lookup);
+		return (hash);
 	}
 
 
@@ -85,26 +85,30 @@ if (req.http.Cookie ~ "wordpress_" || req.http.Cookie ~ "comment_") {
 
 
 # Try a cache-lookup
-return (lookup);
+return (hash);
 
 }
 
-sub vcl_fetch {
+sub vcl_backend_response {
 	#set obj.grace = 5m;
     set beresp.grace = 2m;
 
 }
 
 sub vcl_hit {
-        if (req.request == "PURGE") {
-                purge;
-                error 200 "Purged.";
+        if (req.method == "PURGE") {
+                #purge;
+                return (synth (200, "Purged."));
         }
 }
 
 sub vcl_miss {
-        if (req.request == "PURGE") {
-                purge;
-                error 200 "Purged.";
+        if (req.method == "PURGE") {
+                #purge;
+                return (synth (200, "Purged."));
         }
+}
+
+sub vcl_deliver {
+
 }
